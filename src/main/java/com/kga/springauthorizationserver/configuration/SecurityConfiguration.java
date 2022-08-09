@@ -36,7 +36,7 @@ import java.util.UUID;
 public class SecurityConfiguration {
 
     @Bean//Цепочка фильтров Spring Security для конечных точек протокола.
-    @Order(1)
+    @Order(10)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception{
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
@@ -47,10 +47,10 @@ public class SecurityConfiguration {
     }
 
     @Bean//Цепочка фильтров Spring Security для аутентификации (кто ты?)
-    @Order(2)
+    @Order(20)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception{
-        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-
+        //Здесь мы вызываем authorizeRequests.anyRequest().authenticated(), чтобы требовать аутентификацию для всех запросов.
+        // Мы также предоставляем аутентификацию на основе форм, вызывая метод formLogin(Customizer.withDefaults()) .
         http
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
                 // Форма входа обрабатывает перенаправление на страницу входа с цепочки фильтров сервера авторизации
@@ -73,15 +73,25 @@ public class SecurityConfiguration {
     @Bean
     public RegisteredClientRepository registeredClientRepository(){
         RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString()) //Возвращает новый RegisteredClient.Builder, инициализированный предоставленным идентификатором регистрации.
-                .clientId("clientUser")// Устанавливает идентификатор клиента.
-                .clientSecret("{noop}secret")//Устанавливает секрет клиента.
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC) //Добавляет authentication method клиент, который может использовать при аутентификации на сервере авторизации.
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE) //Добавляет объект, который authorization grant type может использовать клиент.
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .clientId("clientUser")// Устанавливает идентификатор клиента. Spring будет использовать его для определения того, какой клиент пытается получить доступ к ресурсу
+                /*Устанавливает секрет клиента. Секрет, известный клиенту и серверу, который обеспечивает доверие между ними.
+                * {noop} представляет PasswordEncoder идентификатор для NoOpPasswordEncoder Spring Security.
+                * "{noop}secret" В тексте между скобками {} указывается PasswordEncoder(тип кодирования). noop это обозначение кодирования NoOpPasswordEncoder.
+                * Текст "secret" пароль.
+                 * см. * https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html#authentication-password-storage-dpe-format
+                 *PasswordEncoder предоставляется только для устаревших и тестовых целей и не считается безопасным.
+                 Кодировщик паролей, который ничего не делает. Полезно для тестирования, когда может быть предпочтительнее работать с паролями в виде простого текста./
+                 */
+                .clientSecret("{noop}secret")
+                //Добавляет authentication method клиент, который может использовать при аутентификации на сервере авторизации. в нашем случае мы будем использовать обычную аутентификацию, которая представляет собой просто имя пользователя и пароль
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                //Добавляет объект, который authorization grant type может использовать клиент. мы хотим, чтобы клиент мог генерировать как код авторизации, так и токен обновления.
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)//
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .redirectUri("http://127.0.0.1:8080/login/oauth2/code/messaging-client-oidc")//Добавляет URI перенаправления, который клиент может использовать в потоке на основе перенаправления.
                 .redirectUri("http://127.0.0.1:8080/authorized")
-                .scope(OidcScopes.OPENID) //Добавляет область, которую может использовать клиент.
+                .scope(OidcScopes.OPENID) //Добавляет область, которую может использовать клиент.этот параметр определяет полномочия, которые может иметь клиент. В нашем случае у нас будет обязательный OidcScopes.OPENID и наш пользовательский чтение и запись
                 .scope("message.read")
                 .scope("message.write")
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())//Устанавливает client configuration settings (ClientSettings Средство для настройки конфигурации клиента.). :: isRequireAuthorizationConsent()-Возвращает true, если требуется согласие на авторизацию, когда клиент запрашивает доступ.
@@ -118,7 +128,8 @@ public class SecurityConfiguration {
     }
 
     /**7. Экземпляр ProviderSettings для настройки Spring Authorization Server.
-     * Средство для настройки параметров конфигурации поставщика.*/
+     * Средство для настройки параметров конфигурации поставщика.
+     * За исключением ключа подписи, каждый сервер авторизации также должен иметь уникальный URL-адрес издателя.*/
     @Bean
     public ProviderSettings providerSettings() {
         return ProviderSettings.builder().build();//Конфигурация по умолчанию
