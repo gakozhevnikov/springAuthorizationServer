@@ -1,2 +1,26 @@
 server:
         port:9000
+
+spring:
+        # 1. Connection to a Production Database (Подключение к производственной базе данных)
+        # 1.1 DataSource Configuration (Конфигурация источника данных)
+        datasource:
+                url: "jdbc:postgresql://localhost:5432/spring_authorization_server"
+                username: "user"
+                password: "password"
+        # 1.2 Configure JPA Properties
+        jpa:
+                #Целевая база данных для работы, автоматически определяемая по умолчанию. Может быть альтернативно задан с помощью свойства "database Platform".
+                database: postgresql
+                #Creating and Dropping JPA Databases.
+                # Режим DDL. На самом деле это ярлык для свойства "hibernate.hbm2ddl.auto". По умолчанию используется значение "создать-удалить" при использовании
+                #встроенной базы данных, и диспетчер схем не был обнаружен.
+                #DDL – Data Definition Language
+                #Data Definition Language (DDL) – это группа операторов определения данных. Другими словами, с помощью операторов, входящих в эту группы,
+                #мы определяем структуру базы данных и работаем с объектами этой базы, т.е. создаем, изменяем и удаляем их.
+                #В эту группу входят следующие операторы: CREATE – используется для создания объектов базы данных; ALTER – используется для изменения объектов базы данных;
+                #DROP – используется для удаления объектов базы данных.
+                hibernate:
+                        ddl-auto: create-drop
+
+
