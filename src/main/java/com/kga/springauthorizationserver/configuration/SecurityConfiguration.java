@@ -69,36 +69,6 @@ public class SecurityConfiguration {
         return new InMemoryUserDetailsManager(userDetailsService);
     }
 
-    /**4. Экземпляр RegisteredClientRepository для управления клиентами.*/
-    @Bean
-    public RegisteredClientRepository registeredClientRepository(){
-        RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString()) //Возвращает новый RegisteredClient.Builder, инициализированный предоставленным идентификатором регистрации.
-                .clientId("clientUser")// Устанавливает идентификатор клиента. Spring будет использовать его для определения того, какой клиент пытается получить доступ к ресурсу
-                /*Устанавливает секрет клиента. Секрет, известный клиенту и серверу, который обеспечивает доверие между ними.
-                * {noop} представляет PasswordEncoder идентификатор для NoOpPasswordEncoder Spring Security.
-                * "{noop}secret" В тексте между скобками {} указывается PasswordEncoder(тип кодирования). noop это обозначение кодирования NoOpPasswordEncoder.
-                * Текст "secret" пароль.
-                 * см. * https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html#authentication-password-storage-dpe-format
-                 *PasswordEncoder предоставляется только для устаревших и тестовых целей и не считается безопасным.
-                 Кодировщик паролей, который ничего не делает. Полезно для тестирования, когда может быть предпочтительнее работать с паролями в виде простого текста./
-                 */
-                .clientSecret("{noop}secret")
-                //Добавляет authentication method клиент, который может использовать при аутентификации на сервере авторизации. в нашем случае мы будем использовать обычную аутентификацию, которая представляет собой просто имя пользователя и пароль
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                //Добавляет объект, который authorization grant type может использовать клиент. мы хотим, чтобы клиент мог генерировать как код авторизации, так и токен обновления.
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)//
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .redirectUri("http://127.0.0.1:8080/login/oauth2/code/messaging-client-oidc")//Добавляет URI перенаправления, который клиент может использовать в потоке на основе перенаправления.
-                .redirectUri("http://127.0.0.1:8080/authorized")
-                .scope(OidcScopes.OPENID) //Добавляет область, которую может использовать клиент.этот параметр определяет полномочия, которые может иметь клиент. В нашем случае у нас будет обязательный OidcScopes.OPENID и наш пользовательский чтение и запись
-                .scope("message.read")
-                .scope("message.write")
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())//Устанавливает client configuration settings (ClientSettings Средство для настройки конфигурации клиента.). :: isRequireAuthorizationConsent()-Возвращает true, если требуется согласие на авторизацию, когда клиент запрашивает доступ.
-                .build();
-        return new InMemoryRegisteredClientRepository(registeredClient);
-    }
-
     /**5. Экземпляр com.nimbusds.jose.jwk.source.JWKSource для подписи access tokens.**/
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
